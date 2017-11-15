@@ -7,12 +7,11 @@ import java.util.List;
 
 public class Automate
 {
-    ArrayList<String> adresses = new ArrayList<String>();
+    ArrayList<String> codesPostaux = new ArrayList<String>();
 
     public void creerArbreAdresses(String fichier)
     {
         lireFichier(fichier);
-
     }
 
     private void lireFichier(String fichier)
@@ -28,7 +27,7 @@ public class Automate
                 List<String> lines = Files.readAllLines(path);
 
                 for (String line : lines) {
-                    adresses.add(line);
+                    codesPostaux.add(line);
                 }
             } catch (IOException e) {}
         }

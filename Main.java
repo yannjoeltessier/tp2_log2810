@@ -47,15 +47,11 @@ public class Main {
                     choixGeneral=0;
                 }
                 else if (choixGeneral == 4) return;
-                else if ((choixGeneral > 4 || choixGeneral < 1) && scan1.hasNextInt()  ) {
-                    choixGeneral = 0;
-                    System.out.println("Entrée invalide. Veuillez entrer une entrée valide");
-                }
             }
         }
 
         public static int verifierEntreeUsager(Scanner scan){
-            if(scan.hasNextInt()) return scan.nextInt();
+            if(scan.hasNextInt() && scan.nextInt() < 4 && scan.nextInt() > 1) return scan.nextInt();
             System.out.println("Entrée invalide. Veuillez entrer une entrée valide");
             return 0;
         }
