@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Automate
 {
-    ArrayList adresses;
+    ArrayList<String> adresses = new ArrayList<String>();
 
     public void creerArbreAdresses(String fichier)
     {
@@ -18,7 +18,7 @@ public class Automate
     private void lireFichier(String fichier)
     {
         Path currentRelativePath = Paths.get("");
-        String s = currentRelativePath.toAbsolutePath().toString() + "/autres/" + fichier;
+        String s = currentRelativePath.toAbsolutePath().toString() + "/src/autres/" + fichier;
         Path path = Paths.get(s);
 
         if(!Files.exists(path) || !Files.isRegularFile(path) || !Files.isReadable(path) || !Files.isExecutable(path)) {

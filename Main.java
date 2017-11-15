@@ -14,7 +14,7 @@ public class Main {
             while (choixGeneral == 0) // Lecture du choix principal
             {
                 System.out.println(
-                                "MENU\n" +
+                                "\nMENU\n" +
                                 "(1) Créer l’automate.\n" +
                                 "(2) Traiter des requêtes.\n" +
                                 "(3) Afficher les statistiques.\n" +
