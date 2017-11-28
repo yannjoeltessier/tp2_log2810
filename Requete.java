@@ -9,6 +9,9 @@ public class Requete {
     private String destination;
     private int poids; // poids du colis
 
+    /**
+     * Constructeur
+     * */
     public Requete(String source, String destination, int poids) {
         this.source = source;
         this.destination = destination;

@@ -4,8 +4,6 @@
  * Date        : 20 Novembre 2017
  */
 
-import com.sun.org.apache.regexp.internal.RE;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,13 +11,10 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class CentreExpedition {
-    private final static int N_MAX_DRONES_TYPE_UN = 10;
-    private final static int N_MAX_DRONES_TYPE_DEUX = 5;
-
+    private Flotte flotte;
     private ArbreAdresses arbreAdresses; // L'automate
-    private ArrayList<ArrayList<Queue<Drone>>> flotte;
     private ArrayList<Requete> requetesInvalides;
-    private Queue<ArrayList<Requete>> requetesValides;
+    private Queue<Queue<Requete>> requetesValides;
 
     private int nRequetesTraitees;
     private int nColisTransportesTypeUn; // Nombre de colis transportés par un drone de type 1
@@ -29,21 +24,10 @@ public class CentreExpedition {
      * Constructeur de centre d'expedition
      */
     public CentreExpedition() {
+        flotte = new Flotte();
         arbreAdresses = new ArbreAdresses();
         requetesValides = new LinkedList<>();
         requetesInvalides = new ArrayList<>();
-
-        flotte = new ArrayList<>(N_MAX_DRONES_TYPE_DEUX + N_MAX_DRONES_TYPE_UN);
-        flotte.add(new ArrayList<>());
-        flotte.add(new ArrayList<>());
-        flotte.get(0).add(new LinkedList<>());
-        flotte.get(0).add(new LinkedList<>());
-        flotte.get(1).add(new LinkedList<>());
-        flotte.get(1).add(new LinkedList<>());
-        for (int i = 0; i < N_MAX_DRONES_TYPE_DEUX; i++)
-            flotte.get(0).get(0).add(new Drone(2));
-        for (int j = 0; j < N_MAX_DRONES_TYPE_UN; j++)
-            flotte.get(0).get(1).add(new Drone(1));
 
         nRequetesTraitees = 0;
         nColisTransportesTypeUn = 0;
@@ -82,40 +66,47 @@ public class CentreExpedition {
      */
     public void assignerLesColis() {
 
-        for (Iterator<ArrayList<Requete>> it = requetesValides.iterator(); it.hasNext();) {
+        for (Iterator<Queue<Requete>> i = requetesValides.iterator(); i.hasNext(); ) {
 
-            ArrayList<Requete> groupe = it.next();
+            Queue<Requete> groupe = i.next();
 
-            if (flotte.get(0).get(0).size() + flotte.get(0).get(1).size() > 0) { // s'il y a des drone disponibles
+            // s'il y a des drone disponibles
+            if (flotte.getTypeDeuxDispo().size() + flotte.getTypeUnDispo().size() > 0) {
 
-                if (getPoidsTotal(groupe) > 1000 && flotte.get(0).get(0).size() > 0) { // s'il y a des drones de type 2 disponibles
+                // s'il y a des drones de type 2 disponibles
+                if (getPoidsTotal(groupe) > 1000 && flotte.getTypeDeuxDispo().size() > 0) {
 
-                    flotte.get(0).get(0).element().setStatut(false);
-                    flotte.get(0).get(0).element().setGroupeColis(groupe);
-                    flotte.get(0).get(0).element().setSource(groupe.get(0).getSource());
-                    flotte.get(0).get(0).element().setDestination(groupe.get(0).getDestination());
-                    flotte.get(0).get(0).element().setPoidsColis(getPoidsTotal(groupe));
+                    flotte.getTypeDeuxDispo().get(0).setStatut(false);
+                    flotte.getTypeDeuxDispo().get(0).setGroupeColis(groupe);
+                    flotte.getTypeDeuxDispo().get(0).setSource(groupe.peek().getSource());
+                    flotte.getTypeDeuxDispo().get(0).setDestination(groupe.peek().getDestination());
+                    flotte.getTypeDeuxDispo().get(0).setPoidsColis(getPoidsTotal(groupe));
 
-                    flotte.get(1).get(0).add(flotte.get(0).get(0).element());
-                    flotte.get(0).get(0).remove();
+                    flotte.getTypeDeuxIndispo().add(flotte.getTypeDeuxDispo().get(0));
+                    flotte.getTypeDeuxDispo().remove(0);
 
                     nColisTransportesTypeDeux += groupe.size();
 
-                } else if (flotte.get(0).get(1).size() > 0) { // s'il y a des drones de type 1 disponibles
+                    i.remove();
+                    nRequetesTraitees++;
 
-                    flotte.get(0).get(1).element().setStatut(false);
-                    flotte.get(0).get(1).element().setGroupeColis(groupe);
-                    flotte.get(0).get(1).element().setSource(groupe.get(0).getSource());
-                    flotte.get(0).get(1).element().setDestination(groupe.get(0).getDestination());
-                    flotte.get(0).get(1).element().setPoidsColis(getPoidsTotal(groupe));
+                    // s'il y a des drones de type 1 disponibles
+                } else if (getPoidsTotal(groupe) <= 1000 && flotte.getTypeUnDispo().size() > 0) {
 
-                    flotte.get(1).get(1).add(flotte.get(0).get(1).element());
-                    flotte.get(0).get(1).remove();
+                    flotte.getTypeUnDispo().get(0).setStatut(false);
+                    flotte.getTypeUnDispo().get(0).setGroupeColis(groupe);
+                    flotte.getTypeUnDispo().get(0).setSource(groupe.peek().getSource());
+                    flotte.getTypeUnDispo().get(0).setDestination(groupe.peek().getDestination());
+                    flotte.getTypeUnDispo().get(0).setPoidsColis(getPoidsTotal(groupe));
+
+                    flotte.getTypeUnIndispo().add(flotte.getTypeUnDispo().get(0));
+                    flotte.getTypeUnDispo().remove(0);
 
                     nColisTransportesTypeUn += groupe.size();
+
+                    i.remove();
+                    nRequetesTraitees++;
                 }
-                it.remove();
-                nRequetesTraitees++;
             }
         }
     }
@@ -127,16 +118,116 @@ public class CentreExpedition {
      */
     public void equilibrerFlotte() {
 
+        // On parcours nos drones indisponibles et on verifie s'ils ont
+        // termine la livraison de tous leurs colis. Si oui, leur statut devient disponible.
+        // Si non, on suppose qu'ils ont effectue une livraison durant ce cycle alors
+        // nous leur enlevons un colis de leur groupe.
+        for (Iterator<Drone> i = flotte.getTypeDeuxIndispo().iterator(); i.hasNext(); ) { // drones indispo de type 2
+
+            Drone droneType2 = i.next();
+
+            if (droneType2.getGroupeColis().size() == 0) {
+
+                droneType2.setStatut(true);
+                droneType2.setPoidsColis(0);
+                flotte.getTypeDeuxDispo().add(droneType2);
+                i.remove();
+            } else
+                droneType2.getGroupeColis().remove();
+        }
+        for (Iterator<Drone> j = flotte.getTypeUnIndispo().iterator(); j.hasNext(); ) { // drones indispo de type 1
+
+            Drone droneType1 = j.next();
+
+            if (droneType1.getGroupeColis().size() == 0) {
+
+                droneType1.setStatut(true);
+                droneType1.setPoidsColis(0);
+                flotte.getTypeUnDispo().add(droneType1);
+                j.remove();
+            } else
+                droneType1.getGroupeColis().remove();
+        }
+
+        // On verifie ici s'il y a des requetes dans notre file d'attente
+        // et si nous avons encore des drones disponibles. Si oui, nous les
+        // envoyons chercher de nouveaux colis en leur ajoutant un faux colis pour
+        // qu'ils deviennent indisponibles pendant un cycle pour qu'ils aient le
+        // temps de recuperer le vrai colis.
+        if (!requetesValides.isEmpty() &&
+                (!flotte.getTypeDeuxDispo().isEmpty() ||
+                        !flotte.getTypeUnDispo().isEmpty())) {
+
+            for (Queue<Requete> requete : requetesValides) {
+
+                if (getPoidsTotal(requete) > 1000) {
+
+                    for (Iterator<Drone> i = flotte.getTypeDeuxDispo().iterator(); i.hasNext(); ) {
+
+                        Drone droneType2 = i.next();
+
+                        if (!requete.peek().getSource().equals(droneType2.getSource())) {
+
+                            droneType2.setSource(requetesValides.element().peek().getSource());
+                            droneType2.setDestination(requetesValides.element().peek().getSource());
+                            droneType2.setPoidsColis(0);
+                            droneType2.setGroupeColis(new LinkedList<>());
+                            flotte.getTypeDeuxIndispo().add(droneType2);
+                            i.remove();
+                        }
+                    }
+                } else {
+                    for (Iterator<Drone> j = flotte.getTypeUnDispo().iterator(); j.hasNext(); ) {
+
+                        Drone droneType1 = j.next();
+
+                        if (!requete.peek().getSource().equals(droneType1.getSource())) {
+
+                            droneType1.setSource(requetesValides.element().peek().getSource());
+                            droneType1.setDestination(requetesValides.element().peek().getSource());
+                            droneType1.setPoidsColis(0);
+                            droneType1.setGroupeColis(new LinkedList<>());
+                            flotte.getTypeUnIndispo().add(droneType1);
+                            j.remove();
+                        }
+                    }
+                }
+            }
+        }
+        // Les drones qui n'ont pas de colis assigne, nous les envoyons aleatoirement
+        // vers des quartiers libres.
+        for (Iterator<Drone> i = flotte.getTypeDeuxDispo().iterator(); i.hasNext(); ) {
+
+            Drone droneType2 = i.next();
+
+            if (droneType2.getDestination() == "") {
+
+                Random generator = new Random(System.nanoTime());
+                int randomInt = generator.nextInt(arbreAdresses.getAdresses().size() + 1);
+                droneType2.setDestination(arbreAdresses.getAdresses().get(randomInt));
+            }
+        }
+        for (Iterator<Drone> j = flotte.getTypeUnDispo().iterator(); j.hasNext(); ) {
+
+            Drone droneType1 = j.next();
+
+            if (droneType1.getDestination() == "") {
+
+                Random generator = new Random(System.nanoTime());
+                int randomInt = generator.nextInt(arbreAdresses.getAdresses().size() + 1);
+                droneType1.setDestination(arbreAdresses.getAdresses().get(randomInt));
+            }
+        }
     }
 
 
     /**
      * Permet d'afficher les statisques suivantes :
-     * nombre de requêtes traitées,
-     * requêtes invalides,
-     * colis transportés par un drone de type 1,
-     * colis transportés par un drone de type 2,
-     * drones dans chaque quartier
+     * - nombre de requêtes traitées,
+     * - requêtes invalides,
+     * - colis transportés par un drone de type 1,
+     * - colis transportés par un drone de type 2,
+     * - nombre de drones dans chaque quartier
      */
     public void imprimerStatistiques() {
 
@@ -146,18 +237,31 @@ public class CentreExpedition {
         System.out.println(nColisTransportesTypeUn + " colis transportés par un/des drone(s) de type 1." + "\n");
         System.out.println(nColisTransportesTypeDeux + " colis transportés par un/des drone(s) de type 2." + "\n");
 
-        System.out.println("Nombre de drones dans chaque quartier : " + "\n");
+        System.out.println("Nombre de drones dans chaque quartier (caché si 0) : " + "\n");
 
-//        for (String quartier : quartiers){
-//            int nDrones = 0;
-//            for (Drone drone : flotte){
-//
-//                if (quartier.equals(drone.getDestination()))
-//                    nDrones++;
-//            }
-//            if (nDrones > 0)
-//                System.out.println(quartier + " : " + nDrones);
-//        }
+        for (String quartier : arbreAdresses.getAdresses()) {
+
+            int nDrones = 0;
+
+            for (Drone drone : flotte.getTypeUnDispo())
+                if (quartier.equals(drone.getDestination()))
+                    nDrones++;
+
+            for (Drone drone : flotte.getTypeDeuxDispo())
+                if (quartier.equals(drone.getDestination()))
+                    nDrones++;
+
+            for (Drone drone : flotte.getTypeUnIndispo())
+                if (quartier.equals(drone.getDestination()))
+                    nDrones++;
+
+            for (Drone drone : flotte.getTypeDeuxIndispo())
+                if (quartier.equals(drone.getDestination()))
+                    nDrones++;
+
+            if (nDrones > 0)
+                System.out.println(quartier + " : " + nDrones);
+        }
     }
 
 
@@ -192,7 +296,7 @@ public class CentreExpedition {
 
                             if (!peutCreerGroupe(requete)) { // Si la requete ne forme pas un nouveau groupe
 
-                                ArrayList<Requete> nouveauGroupe = new ArrayList<>();
+                                Queue<Requete> nouveauGroupe = new LinkedList<>();
                                 nouveauGroupe.add(requete);
                                 requetesValides.add(nouveauGroupe);
                             }
@@ -217,7 +321,7 @@ public class CentreExpedition {
 
         if (requetesValides.isEmpty())
             return false;
-        for (ArrayList<Requete> groupe : requetesValides) {
+        for (Queue<Requete> groupe : requetesValides) {
             for (Requete req : groupe) {
 
                 if (req.getSource().equals(requete.getSource()) &&
@@ -251,7 +355,7 @@ public class CentreExpedition {
      * @param groupe
      * @return int
      */
-    public int getPoidsTotal(ArrayList<Requete> groupe) {
+    public int getPoidsTotal(Queue<Requete> groupe) {
         int poidsTotal = 0;
         for (Requete requete : groupe)
             poidsTotal += requete.getPoids();

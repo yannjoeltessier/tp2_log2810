@@ -4,17 +4,20 @@
  * Date        : 20 Novembre 2017
  */
 
-import java.util.ArrayList;
+import java.util.Queue;
 
 public class Drone {
     private int type; // type du drone, 1 pour categorie 1 et 2 pour categorie 2
     private boolean statut; // le statut du drone, vrai si le drone est disponible, faux sinon
-    private ArrayList<Requete> groupeColis;
+    private Queue<Requete> groupeColis;
     private String source; // quartier actuel du drone
     private String destination; // quartier de destination apres livraison
     private int poidsColis; // poids du colis assigne
 
-    public Drone(int type){
+    /**
+     * Constructeurs
+     */
+    public Drone(int type) {
         this.type = type;
         statut = true;
         groupeColis = null;
@@ -23,22 +26,29 @@ public class Drone {
         poidsColis = 0;
     }
 
-    public Drone(int type, ArrayList<Requete> groupeColis) {
+    public Drone(int type, Queue<Requete> groupeColis) {
         this.type = type;
         this.statut = groupeColis.size() > 1;
         this.groupeColis = groupeColis;
-        this.source = groupeColis.get(0).getSource();
-        this.destination = groupeColis.get(0).getDestination();
+        this.source = groupeColis.peek().getSource();
+        this.destination = groupeColis.peek().getDestination();
         for (Requete requete : groupeColis)
             this.poidsColis += requete.getPoids();
     }
 
+    /**
+     * Getters et setters
+     */
     public int getType() {
         return type;
     }
 
     public boolean getStatut() {
         return statut;
+    }
+
+    public Queue<Requete> getGroupeColis() {
+        return groupeColis;
     }
 
     public String getSource() {
@@ -57,11 +67,11 @@ public class Drone {
         this.type = type;
     }
 
-    public void setStatut(boolean statut){
+    public void setStatut(boolean statut) {
         this.statut = statut;
     }
 
-    public void setGroupeColis(ArrayList<Requete> groupeColis) {
+    public void setGroupeColis(Queue<Requete> groupeColis) {
         this.groupeColis = groupeColis;
     }
 

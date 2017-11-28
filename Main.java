@@ -14,7 +14,20 @@ public class Main {
         menu(ce);
 
 //        ce.creerArbreAdresses("CodesPostaux.txt");
+//        ce.traiterLesRequetes("requetes1.txt");
+//        ce.imprimerStatistiques();
+//        ce.traiterLesRequetes("requetes2.txt");
+//        ce.imprimerStatistiques();
+//        ce.traiterLesRequetes("requetes3.txt");
+//        ce.imprimerStatistiques();
 //        ce.traiterLesRequetes("requetes4.txt");
+//        ce.imprimerStatistiques();
+//        ce.traiterLesRequetes("requetes5.txt");
+//        ce.imprimerStatistiques();
+//        ce.traiterLesRequetes("requetes6.txt");
+//        ce.imprimerStatistiques();
+//        ce.traiterLesRequetes("requetes7.txt");
+//        ce.imprimerStatistiques();
 //        ce.traiterLesRequetes("requetes8.txt");
 //        ce.imprimerStatistiques();
     }
@@ -22,9 +35,10 @@ public class Main {
 
     /**
      * Verifie l'entree de l'usager
+     *
      * @param scan l'entree
      * @return la valeur entree si elle est valide, 0 sinon
-     * */
+     */
     public static int verifierEntreeUsager(Scanner scan) {
         if (scan.hasNextInt()) {
             int a = scan.nextInt();
@@ -37,8 +51,9 @@ public class Main {
 
     /**
      * Affiche le menu en boucle a l'usager
+     *
      * @param ce le centre d'expedition
-     * */
+     */
     public static void menu(CentreExpedition ce) {
 
         // Choix du menu principal
